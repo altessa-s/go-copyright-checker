@@ -1,0 +1,100 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - <<: &build_defaults
+      main: .
+      ldflags:
+        - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}}
+      env:
+        - CGO_ENABLED=0
+
+    id: macos
+    goos: [darwin]
+    goarch: [amd64, arm64]
+
+  - <<: *build_defaults
+    id: linux
+    goos: [linux]
+    goarch: [arm, amd64, arm64]
+
+  - <<: *build_defaults
+    id: windows
+    goos: [windows]
+    goarch: [amd64]
+
+release:
+  disable: false
+  prerelease: auto
+  github:
+    owner: altessa-s
+    name: go-copyright-checker
+
+archives:
+  - id: nix
+    builds: [macos, linux]
+    <<: &archive_defaults
+      name_template: >-
+        {{ .ProjectName }}_
+        {{- .Version }}_
+        {{- if eq .Os "darwin" }}macos
+        {{- else if eq .Os "linux" }}linux
+        {{- else if eq .Os "windows" }}windows{{ end }}_
+        {{- if eq .Arch "386" }}i386
+        {{- else if eq .Arch "amd64" }}x86_64
+        {{- else if eq .Arch "arm" }}arm
+        {{- else }}{{ .Arch }}{{ end }}
+        {{- if .Arm }}v{{ .Arm }}{{ end }}
+      wrap_in_directory: false
+    format: zip
+    strip_binary_directory: true
+    files:
+      - LICENSE
+      - README.md
+
+  - id: windows
+    builds: [windows]
+    <<: *archive_defaults
+    format: zip
+
+nfpms:
+  - id: packages
+    package_name: go-copyright-checker
+    file_name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else if eq .Os "linux" }}linux{{ end }}_
+      {{- if eq .Arch "386" }}i386
+      {{- else if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+
+    contents:
+      - src: LICENSE
+        dst: LICENSE
+
+    vendor: Altessa Solutions
+    description: This tools checks for missing copyright headers in Go files
+    license:  MIT
+    maintainer: Altessa Solutions <hello@altessa-s.com>
+    formats:
+      - apk
+      - deb
+      - rpm
+    bindir: /usr
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "SNAPSHOT-{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
