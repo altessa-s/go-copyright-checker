@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -87,12 +86,6 @@ func run(cmd *cobra.Command, args []string) error {
 
 	fix := cmd.Flags().Lookup("fix").Value.String() == "true"
 
-	regex, err := regexp.Compile(`^// .*DO NOT EDIT\.?`)
-	if err != nil {
-		return err
-	}
-	_ = regex
-
 	// Using the new checker package
 	cfg := checker.Config{
 		Dir:         path,
@@ -102,6 +95,7 @@ func run(cmd *cobra.Command, args []string) error {
 		Data:        variables,
 	}
 
+	//nolint:prealloc // We cannot know the number of errors upfront.
 	var fileErrors []string
 
 	// Consume the iterator

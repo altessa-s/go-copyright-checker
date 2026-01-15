@@ -34,7 +34,7 @@ linters:
 
 # options for analysis running
 run:
-  go: '1.25'
+  go: '1.24'
   concurrency: 4
   timeout: 5m
   tests: false

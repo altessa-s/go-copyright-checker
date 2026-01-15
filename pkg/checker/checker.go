@@ -23,6 +23,10 @@ import (
 	"text/template"
 )
 
+const (
+	defaultFilePerm = 0o644
+)
+
 // Config holds the configuration for the copyright checker.
 type Config struct {
 	Dir         string
@@ -34,7 +38,8 @@ type Config struct {
 
 // Check checks and optionally fixes copyright headers in the specified directory.
 // It returns an iterator that yields files that needed changes (or errors).
-// The iterator yields (filename, error). If error is nil, the file was identified as needing a fix (and fixed if Config.Fix is true).
+// The iterator yields (filename, error). If error is nil, the file was identified as needing a fix
+// (and fixed if Config.Fix is true).
 func Check(cfg Config) iter.Seq2[string, error] {
 	return func(yield func(string, error) bool) {
 		// 1. Prepare configuration
@@ -77,6 +82,7 @@ func Check(cfg Config) iter.Seq2[string, error] {
 		// Start Walker
 		go func() {
 			defer close(jobs)
+			//nolint:errcheck // Inner errors are propagated via the results channel
 			_ = filepath.WalkDir(cfg.Dir, func(path string, d fs.DirEntry, err error) error {
 				if ctx.Err() != nil {
 					return filepath.SkipAll
@@ -255,7 +261,7 @@ func fixFile(fset *token.FileSet, parsed *ast.File, filename string, copyrightLi
 		return err
 	}
 
-	return os.WriteFile(filename, []byte(generatedCode.String()), 0644)
+	return os.WriteFile(filename, []byte(generatedCode.String()), defaultFilePerm)
 }
 
 func isBuildTag(cg *ast.CommentGroup) bool {
@@ -263,7 +269,8 @@ func isBuildTag(cg *ast.CommentGroup) bool {
 		return false
 	}
 	first := cg.List[0].Text
-	return strings.HasPrefix(strings.TrimSpace(first), "//go:build") || strings.HasPrefix(strings.TrimSpace(first), "// +build")
+	return strings.HasPrefix(strings.TrimSpace(first), "//go:build") ||
+		strings.HasPrefix(strings.TrimSpace(first), "// +build")
 }
 
 // filterComments removes comments that come before the package declaration
@@ -280,7 +287,8 @@ func filterComments(comments []*ast.CommentGroup, packagePos token.Pos) []*ast.C
 		}
 
 		// If it's before package:
-		// We already extracted build tags in `fixFile`, so if this IS a build tag, we shouldn't keep it here (to avoid duplication).
+		// We already extracted build tags in `fixFile`, so if this IS a build tag,
+		// we shouldn't keep it here (to avoid duplication).
 		if isBuildTag(group) {
 			continue
 		}

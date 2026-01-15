@@ -10,6 +10,8 @@ Package `go-copyright-checker` provides a set of utilities and a CLI tool for ch
 
 > This package was originally developed as an internal project at Altessa Solutions Inc. and is now open-sourced under the MIT License.
 
+> AI tools were used during the open-source transition for: creating GitHub workflows and configuration files, updating and consolidating documentation, generating usage examples, and reviewing code for consistency.
+
 ## API Reference
 
 ### Core
