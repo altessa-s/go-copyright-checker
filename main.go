@@ -14,7 +14,6 @@ import (
 var RootCmd = &cobra.Command{
 	Use:          "go-copyright",
 	Short:        "This tools checks for missing copyright headers in Go files.",
-	Args:         cobra.ExactArgs(1),
 	SilenceUsage: false,
 }
 
