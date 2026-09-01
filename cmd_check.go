@@ -16,8 +16,8 @@ import (
 	"github.com/altessa-s/go-copyright-checker/pkg/checker"
 )
 
-var DefaultCopyrightTemplate = `Copyright 2021-{{.YEAR}} Altessa Solutions Inc. All rights reserved.
-Use of this source code is governed by license that can be found in 
+var DefaultCopyrightTemplate = `Copyright {{yearRange .START_YEAR .YEAR}} Altessa Solutions Inc. All rights reserved.
+Use of this source code is governed by license that can be found in
 the LICENSE file.
 `
 
@@ -48,7 +48,9 @@ func run(cmd *cobra.Command, args []string) error {
 
 	templateContent := DefaultCopyrightTemplate
 	variables := make(map[string]string)
-	variables["YEAR"] = fmt.Sprint(time.Now().Year())
+	currentYear := fmt.Sprint(time.Now().Year())
+	variables["YEAR"] = currentYear
+	variables["START_YEAR"] = currentYear
 
 	configPath, err := cmd.Flags().GetString("config")
 	if err != nil {
@@ -72,7 +74,9 @@ func run(cmd *cobra.Command, args []string) error {
 		for k, v := range conf.Variables {
 			variables[strings.ToUpper(k)] = v
 		}
-		templateContent = conf.Template
+		if conf.Template != "" {
+			templateContent = conf.Template
+		}
 	}
 
 	var excludeDirs = make([]string, 0, len(defaultExcludeDirs))
@@ -98,7 +102,6 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Using the new checker package
 	cfg := checker.Config{
 		Dir:         path,
 		Fix:         fix,
@@ -110,7 +113,6 @@ func run(cmd *cobra.Command, args []string) error {
 	//nolint:prealloc // We cannot know the number of errors upfront.
 	var fileErrors []string
 
-	// Consume the iterator
 	for file, err := range checker.Check(cfg) {
 		if err != nil {
 			return err

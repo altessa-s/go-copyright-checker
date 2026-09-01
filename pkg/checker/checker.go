@@ -36,6 +36,20 @@ type Config struct {
 	Data        map[string]string
 }
 
+// templateFuncs are made available to Config.Template.
+var templateFuncs = template.FuncMap{
+	"yearRange": yearRange,
+}
+
+// yearRange formats a copyright year span, collapsing it to a single year
+// when start and end are equal instead of rendering e.g. "2026-2026".
+func yearRange(start, end string) string {
+	if start == end {
+		return end
+	}
+	return start + "-" + end
+}
+
 // Check checks and optionally fixes copyright headers in the specified directory.
 // It returns an iterator that yields files that needed changes (or errors).
 // The iterator yields (filename, error). If error is nil, the file was identified as needing a fix
@@ -49,7 +63,7 @@ func Check(cfg Config) iter.Seq2[string, error] {
 		}
 
 		// Render the template once
-		tpl, err := template.New("copyright").Parse(cfg.Template)
+		tpl, err := template.New("copyright").Funcs(templateFuncs).Parse(cfg.Template)
 		if err != nil {
 			yield("", fmt.Errorf("invalid template: %w", err))
 			return
@@ -88,8 +102,6 @@ func Check(cfg Config) iter.Seq2[string, error] {
 					return filepath.SkipAll
 				}
 				if err != nil {
-					// Send walk errors to results, but keep walking if possible?
-					// Usually walk errors are fatal for that branch.
 					select {
 					case results <- result{path: path, err: err}:
 					case <-ctx.Done():
