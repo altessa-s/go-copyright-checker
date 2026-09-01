@@ -1,95 +1,112 @@
+version: "2"
+run:
+  concurrency: 4
+  go: "1.24"
+  tests: false
+  allow-parallel-runners: false
 linters:
-  disable-all: true
+  default: none
   enable:
+    - asciicheck
     - bidichk
     - bodyclose
     - contextcheck
+    - copyloopvar
     - dogsled
     - errcheck
-    - prealloc
-    - mnd
-    - unconvert
-    - asciicheck
     - exhaustive
-    - copyloopvar
     - goconst
-    - whitespace
     - gocritic
     - godox
     - goprintffuncname
-    - gosimple
     - govet
-    - unused
+    - ineffassign
     - lll
     - makezero
     - misspell
+    - mnd
     - nilnil
     - noctx
-    - staticcheck
+    - prealloc
     - predeclared
+    - staticcheck
+    - unconvert
     - unparam
+    - unused
+    - whitespace
+  settings:
+    dogsled:
+      max-blank-identifiers: 2
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    exhaustive:
+      default-signifies-exhaustive: true
+      package-scope-only: false
+    goconst:
+      match-constant: true
+      min-len: 3
+      numbers: true
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    makezero:
+      always: false
+    misspell:
+      locale: US
+    mnd:
+      ignored-functions:
+        - strings.SplitN
+        - strconv.*
+        - os.OpenFile
+    staticcheck:
+      checks:
+        - all
+        - -ST1003
+    varnamelen:
+      ignore-names:
+        - err
+        - ch
+        - ok
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-decls:
+        - i int
+        - ch chan
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - goconst
+        path: (.+)_test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
     - gci
-    - ineffassign
-    - stylecheck
-
-# options for analysis running
-run:
-  go: '1.24'
-  concurrency: 4
-  timeout: 5m
-  tests: false
-  allow-parallel-runners: false
-
-# all available settings of specific linters
-linters-settings:
-  dogsled:
-    max-blank-identifiers: 2
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  exhaustive:
-    check-generated: false
-    default-signifies-exhaustive: true
-    package-scope-only: false
-  goconst:
-    min-len: 3
-    ignore-tests: true
-    match-constant: true
-    numbers: true
-  mnd:
-    ignored-functions:
-      - strings.SplitN
-      - strconv.*
-      - os.OpenFile
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  makezero:
-    always: false
-  misspell:
-    locale: US
-  stylecheck:
-      checks: ["all", "-ST1003"]
-  varnamelen:
-    ignore-type-assert-ok: true
-    ignore-map-index-ok: true
-    ignore-chan-recv-ok: true
-    ignore-names:
-      - err
-      - ch
-      - ok
-    ignore-decls:
-      - i int
-      - ch chan
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(google.golang.org)
-      - prefix(golang.org)
-      - prefix(github.com/altessa-s)
-      - prefix(github.com/altessa-s/go-copyright-checker)
-      - blank
-      - alias
-    skip-generated: false
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(google.golang.org)
+        - prefix(golang.org)
+        - prefix(github.com/altessa-s)
+        - prefix(github.com/altessa-s/go-copyright-checker)
+        - blank
+        - alias
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
