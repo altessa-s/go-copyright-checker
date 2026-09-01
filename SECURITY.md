@@ -1,9 +1,15 @@
 # Security Policy
 
+## Supported Versions
+
+We currently support the latest major version of the package.
+
+| Version | Supported          |
+| ------- | ------------------ |
+| v1.x    | :white_check_mark: |
+
 ## Reporting a Vulnerability
 
-Please do not report security vulnerabilities through public GitHub issues.
+If you discover a security vulnerability within this project, please send an email to security@altessa-s.com (or create a private GitHub advisory if enabled). All security vulnerabilities will be promptly addressed.
 
-If you have discovered a security vulnerability in this project, please email us at security@altessa-s.com.
-
-We will do our best to acknowledge your email within 48 hours, and we will update you as we investigate and fix the vulnerability.
+Please **DO NOT** create a public issue for security vulnerabilities.

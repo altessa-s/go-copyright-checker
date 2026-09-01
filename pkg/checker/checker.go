@@ -36,6 +36,20 @@ type Config struct {
 	Data        map[string]string
 }
 
+// templateFuncs are made available to Config.Template.
+var templateFuncs = template.FuncMap{
+	"yearRange": yearRange,
+}
+
+// yearRange formats a copyright year span, collapsing it to a single year
+// when start and end are equal instead of rendering e.g. "2026-2026".
+func yearRange(start, end string) string {
+	if start == end {
+		return end
+	}
+	return start + "-" + end
+}
+
 // Check checks and optionally fixes copyright headers in the specified directory.
 // It returns an iterator that yields files that needed changes (or errors).
 // The iterator yields (filename, error). If error is nil, the file was identified as needing a fix
@@ -49,7 +63,7 @@ func Check(cfg Config) iter.Seq2[string, error] {
 		}
 
 		// Render the template once
-		tpl, err := template.New("copyright").Parse(cfg.Template)
+		tpl, err := template.New("copyright").Funcs(templateFuncs).Parse(cfg.Template)
 		if err != nil {
 			yield("", fmt.Errorf("invalid template: %w", err))
 			return
@@ -88,8 +102,6 @@ func Check(cfg Config) iter.Seq2[string, error] {
 					return filepath.SkipAll
 				}
 				if err != nil {
-					// Send walk errors to results, but keep walking if possible?
-					// Usually walk errors are fatal for that branch.
 					select {
 					case results <- result{path: path, err: err}:
 					case <-ctx.Done():
@@ -123,7 +135,7 @@ func Check(cfg Config) iter.Seq2[string, error] {
 		numWorkers := runtime.GOMAXPROCS(0)
 		wg.Add(numWorkers)
 
-		for i := 0; i < numWorkers; i++ {
+		for range numWorkers {
 			go func() {
 				defer wg.Done()
 				for path := range jobs {
@@ -241,7 +253,8 @@ func fixFile(fset *token.FileSet, parsed *ast.File, filename string, copyrightLi
 	if len(buildTags) > 0 {
 		for _, cg := range buildTags {
 			for _, c := range cg.List {
-				generatedCode.WriteString(c.Text + "\n")
+				generatedCode.WriteString(c.Text)
+				generatedCode.WriteString("\n")
 			}
 		}
 		generatedCode.WriteString("\n")
@@ -249,7 +262,8 @@ func fixFile(fset *token.FileSet, parsed *ast.File, filename string, copyrightLi
 
 	// 2. Write Copyright
 	for i, line := range copyrightLines {
-		generatedCode.WriteString("// " + line)
+		generatedCode.WriteString("// ")
+		generatedCode.WriteString(line)
 		if i < len(copyrightLines)-1 {
 			generatedCode.WriteString("\n")
 		}
@@ -273,29 +287,15 @@ func isBuildTag(cg *ast.CommentGroup) bool {
 		strings.HasPrefix(strings.TrimSpace(first), "// +build")
 }
 
-// filterComments removes comments that come before the package declaration
-// UNLESS they look like build tags (which we extracted separately) or we want to keep them?
-// Actually, earlier we extracted build tags. ensuring we don't duplicate them.
-// `filterComments` is now responsible for removing "Old Copyright" or "Header Comments".
+// filterComments drops pre-package comments (the old copyright header, build
+// tags, or stray text — fixFile writes build tags out separately) while
+// keeping everything after the package declaration.
 func filterComments(comments []*ast.CommentGroup, packagePos token.Pos) []*ast.CommentGroup {
 	var newComments []*ast.CommentGroup
 	for _, group := range comments {
-		// If the comment is after the package keyword, keep it always.
 		if group.Pos() >= packagePos {
 			newComments = append(newComments, group)
-			continue
 		}
-
-		// If it's before package:
-		// We already extracted build tags in `fixFile`, so if this IS a build tag,
-		// we shouldn't keep it here (to avoid duplication).
-		if isBuildTag(group) {
-			continue
-		}
-
-		// It's a comment before package, and NOT a build tag.
-		// Assume it's a copyright header or garbage that should be replaced.
-		// Drop it.
 	}
 	return newComments
 }

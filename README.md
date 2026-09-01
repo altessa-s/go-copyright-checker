@@ -67,16 +67,22 @@ You can configure the tool using a `.copyright.yaml` file or command-line flags.
 
 ```yaml
 template: |
-  Copyright 2021-{{.YEAR}} Altessa Solutions Inc. All rights reserved.
+  Copyright {{yearRange .START_YEAR .YEAR}} Altessa Solutions Inc. All rights reserved.
   Use of this source code is governed by license that can be found in 
   the LICENSE file.
 variables:
   YEAR: 2026
+  START_YEAR: 2021
 ```
 
 **Variables**
 
 - `{{.YEAR}}`: Defaults to the current year. You can override it in the config file.
+- `{{.START_YEAR}}`: Defaults to the current year (same as `{{.YEAR}}`). Set it explicitly in the config file to pin the year a project started.
+
+**Template Functions**
+
+- `yearRange START END`: Renders `START-END`, or just `END` if `START` and `END` are equal (avoids headers like `2026-2026`).
 
 **Command Line Flags**
 

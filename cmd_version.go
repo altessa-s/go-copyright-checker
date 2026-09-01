@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -71,7 +72,7 @@ func cmdVersionRun(_ *cobra.Command, _ []string) {
 		panic(err)
 	}
 
-	println(strings.TrimSpace(buf.String()))
+	fmt.Println(strings.TrimSpace(buf.String()))
 }
 
 var versionInfoTmpl = `

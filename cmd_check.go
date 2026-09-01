@@ -16,8 +16,8 @@ import (
 	"github.com/altessa-s/go-copyright-checker/pkg/checker"
 )
 
-var DefaultCopyrightTemplate = `Copyright 2021-{{.YEAR}} Altessa Solutions Inc. All rights reserved.
-Use of this source code is governed by license that can be found in 
+var DefaultCopyrightTemplate = `Copyright {{yearRange .START_YEAR .YEAR}} Altessa Solutions Inc. All rights reserved.
+Use of this source code is governed by license that can be found in
 the LICENSE file.
 `
 
@@ -48,11 +48,15 @@ func run(cmd *cobra.Command, args []string) error {
 
 	templateContent := DefaultCopyrightTemplate
 	variables := make(map[string]string)
-	variables["YEAR"] = fmt.Sprint(time.Now().Year())
+	currentYear := fmt.Sprint(time.Now().Year())
+	variables["YEAR"] = currentYear
+	variables["START_YEAR"] = currentYear
 
-	var err error
+	configPath, err := cmd.Flags().GetString("config")
+	if err != nil {
+		return err
+	}
 
-	configPath := cmd.Flags().Lookup("config").Value.String()
 	configPath = filepath.Clean(configPath)
 	configPath = filepath.Join(path, configPath)
 
@@ -61,20 +65,29 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	conf, err := LoadConfig(configPath)
-	if err != nil && !os.IsNotExist(err) {
+	switch {
+	case err != nil && os.IsNotExist(err):
+		// No config file present; fall back to the default template.
+	case err != nil:
 		return fmt.Errorf("failed to load config: %w", err)
-	} else if conf != nil {
+	default:
 		for k, v := range conf.Variables {
 			variables[strings.ToUpper(k)] = v
 		}
-		templateContent = conf.Template
+		if conf.Template != "" {
+			templateContent = conf.Template
+		}
 	}
 
 	var excludeDirs = make([]string, 0, len(defaultExcludeDirs))
 
-	exclude := cmd.Flags().Lookup("exclude").Value.String()
+	exclude, err := cmd.Flags().GetString("exclude")
+	if err != nil {
+		return err
+	}
+
 	if exclude != "" {
-		for _, dir := range strings.Split(exclude, ",") {
+		for dir := range strings.SplitSeq(exclude, ",") {
 			if trimmed := strings.TrimSpace(dir); trimmed != "" {
 				excludeDirs = append(excludeDirs, trimmed)
 			}
@@ -84,9 +97,11 @@ func run(cmd *cobra.Command, args []string) error {
 	excludeDirs = append(excludeDirs, defaultExcludeDirs...)
 	excludeDirs = uniqueStrings(excludeDirs)
 
-	fix := cmd.Flags().Lookup("fix").Value.String() == "true"
+	fix, err := cmd.Flags().GetBool("fix")
+	if err != nil {
+		return err
+	}
 
-	// Using the new checker package
 	cfg := checker.Config{
 		Dir:         path,
 		Fix:         fix,
@@ -98,7 +113,6 @@ func run(cmd *cobra.Command, args []string) error {
 	//nolint:prealloc // We cannot know the number of errors upfront.
 	var fileErrors []string
 
-	// Consume the iterator
 	for file, err := range checker.Check(cfg) {
 		if err != nil {
 			return err
